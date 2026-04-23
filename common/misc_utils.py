@@ -253,7 +253,7 @@ def pip_install_torch():
         return
     logging.info("Installing pytorch")
     pkg_names = ["torch>=2.5.0,<3.0.0"]
-    subprocess.check_call([sys.executable, "-m", "pip", "install", *pkg_names])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--index-url=https://download.pytorch.org/whl/cu129", *pkg_names])
 
 
 async def thread_pool_exec(func, *args, **kwargs):
