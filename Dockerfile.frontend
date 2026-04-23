@@ -1,0 +1,24 @@
+FROM registry.home.renwei.net:5000/node:22-bookworm as builder
+
+WORKDIR /ragflow
+
+COPY web web
+COPY docs docs
+RUN cd web && NODE_OPTIONS="--max-old-space-size=8192" npm install && \
+    NODE_OPTIONS="--max-old-space-size=8192" VITE_BUILD_SOURCEMAP=false VITE_MINIFY=esbuild npm run build
+
+
+FROM registry.home.renwei.net:5000/nginx:1.23.0
+
+ENV ADMIN_UPSTREAM=localhost
+ENV API_UPSTREAM=localhost
+
+WORKDIR /ragflow
+RUN mkdir -p /etc/nginx/templates
+COPY docker/nginx/40-prepare-ragflow-conf.sh /docker-entrypoint.d
+COPY docker/nginx/nginx.conf docker/nginx/proxy.conf /etc/nginx/
+COPY docker/nginx/ragflow.conf.golang /etc/nginx/templates/ragflow.conf.golang.template
+COPY docker/nginx/ragflow.conf.python /etc/nginx/templates/ragflow.conf.python.template
+COPY docker/nginx/ragflow.conf.hybrid /etc/nginx/templates/ragflow.conf.hybrid.template
+
+COPY --from=builder /ragflow/web/dist /ragflow/web/dist

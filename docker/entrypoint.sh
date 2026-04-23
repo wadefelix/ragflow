@@ -178,26 +178,7 @@ done < "${TEMPLATE_FILE}"
 export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/"
 PY=python3
 
-# -----------------------------------------------------------------------------
-# Select Nginx Configuration based on API_PROXY_SCHEME
-# -----------------------------------------------------------------------------
-NGINX_CONF_DIR="/etc/nginx/conf.d"
-if [ -n "$API_PROXY_SCHEME" ]; then
-    if [[ "${API_PROXY_SCHEME}" == "hybrid" ]]; then
-        cp -f "$NGINX_CONF_DIR/ragflow.conf.hybrid" "$NGINX_CONF_DIR/ragflow.conf"
-        echo "Applied nginx config: ragflow.conf.hybrid"
-    elif [[ "${API_PROXY_SCHEME}" == "go" ]]; then
-        cp -f "$NGINX_CONF_DIR/ragflow.conf.golang" "$NGINX_CONF_DIR/ragflow.conf"
-        echo "Applied nginx config: ragflow.conf.golang (default)"
-    else
-        cp -f "$NGINX_CONF_DIR/ragflow.conf.python" "$NGINX_CONF_DIR/ragflow.conf"
-        echo "Applied nginx config: ragflow.conf.python"
-    fi
-else
-    # Default to python backend
-    cp -f "$NGINX_CONF_DIR/ragflow.conf.python" "$NGINX_CONF_DIR/ragflow.conf"
-    echo "Default: applied nginx config: ragflow.conf.python"
-fi
+
 
 # -----------------------------------------------------------------------------
 # Function(s)
@@ -267,8 +248,6 @@ ensure_docling
 ensure_db_init
 
 if [[ "${ENABLE_WEBSERVER}" -eq 1 ]]; then
-    echo "Starting nginx..."
-    /usr/sbin/nginx
 
     while true; do
         echo "Attempt to start RAGFlow server..."

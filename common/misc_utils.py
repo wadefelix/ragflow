@@ -37,8 +37,10 @@ def get_uuid():
 
 # OAuth avatar fetch: bounded size; each redirect hop is SSRF-checked and DNS-pinned
 # (see common.ssrf_guard).
-_OAUTH_AVATAR_MAX_BYTES = int(os.environ.get("RAGFLOW_OAUTH_AVATAR_MAX_BYTES", str(5 * 1024 * 1024)))
-_OAUTH_AVATAR_MAX_REDIRECTS = int(os.environ.get("RAGFLOW_OAUTH_AVATAR_MAX_REDIRECTS", "5"))
+_OAUTH_AVATAR_MAX_BYTES = int(
+    os.environ.get("RAGFLOW_OAUTH_AVATAR_MAX_BYTES", str(5 * 1024 * 1024)))
+_OAUTH_AVATAR_MAX_REDIRECTS = int(
+    os.environ.get("RAGFLOW_OAUTH_AVATAR_MAX_REDIRECTS", "5"))
 _REDIRECT_STATUS = frozenset({301, 302, 303, 307, 308})
 
 
@@ -63,7 +65,8 @@ async def download_img(url):
     # pulling settings and keeps this path usable in lightweight test envs).
     request_timeout = float(os.environ.get("HTTP_CLIENT_TIMEOUT", "15"))
     proxy = os.environ.get("HTTP_CLIENT_PROXY")
-    user_agent = os.environ.get("HTTP_CLIENT_USER_AGENT", "ragflow-http-client")
+    user_agent = os.environ.get("HTTP_CLIENT_USER_AGENT",
+                                "ragflow-http-client")
 
     from common.ssrf_guard import assert_url_is_safe, pin_dns_global
 
@@ -85,11 +88,14 @@ async def download_img(url):
             """Return ``('redirect', new_url)``, ``('data', data_uri)``, or ``('fail', None)``."""
             with pin_dns_global(hostname, pin_ip):
                 async with httpx.AsyncClient(
-                    timeout=timeout,
-                    follow_redirects=False,
-                    proxy=proxy,
+                        timeout=timeout,
+                        follow_redirects=False,
+                        proxy=proxy,
                 ) as client:
-                    async with client.stream("GET", current_url, headers=headers or None) as response:
+                    async with client.stream("GET",
+                                             current_url,
+                                             headers=headers
+                                             or None) as response:
                         if response.status_code in _REDIRECT_STATUS:
                             await response.aclose()
                             location = response.headers.get("location")
@@ -112,7 +118,8 @@ async def download_img(url):
                             return ("fail", None)
                         body = bytearray()
                         async for chunk in response.aiter_bytes():
-                            if len(body) + len(chunk) > _OAUTH_AVATAR_MAX_BYTES:
+                            if len(body) + len(
+                                    chunk) > _OAUTH_AVATAR_MAX_BYTES:
                                 logger.warning(
                                     "download_img response exceeded max size: url=%r max_bytes=%s",
                                     current_url,
@@ -121,17 +128,16 @@ async def download_img(url):
                                 await response.aclose()
                                 return ("fail", None)
                             body.extend(chunk)
-                        content_type = response.headers.get("Content-Type", "image/jpeg")
+                        content_type = response.headers.get(
+                            "Content-Type", "image/jpeg")
                         data_uri = (
-                            "data:"
-                            + content_type
-                            + ";base64,"
-                            + base64.b64encode(bytes(body)).decode("utf-8")
-                        )
+                            "data:" + content_type + ";base64," +
+                            base64.b64encode(bytes(body)).decode("utf-8"))
                         return ("data", data_uri)
 
         try:
-            kind, payload = await asyncio.wait_for(_stream_one_get(), timeout=request_timeout)
+            kind, payload = await asyncio.wait_for(_stream_one_get(),
+                                                   timeout=request_timeout)
         except asyncio.TimeoutError:
             logger.warning(
                 "download_img total wall-clock timeout: url=%r redirect_hops=%s timeout=%s",
@@ -166,8 +172,9 @@ async def download_img(url):
     return ""
 
 
-def hash_str2int(line: str, mod: int = 10 ** 8) -> int:
+def hash_str2int(line: str, mod: int = 10**8) -> int:
     return int(hashlib.sha1(line.encode("utf-8")).hexdigest(), 16) % mod
+
 
 def convert_bytes(size_in_bytes: int) -> str:
     """
@@ -218,6 +225,7 @@ def once(func):
     executed = False
     result = None
     lock = threading.Lock()
+
     def wrapper(*args, **kwargs):
         nonlocal executed, result
         with lock:
@@ -225,16 +233,21 @@ def once(func):
                 executed = True
                 result = func(*args, **kwargs)
         return result
+
     return wrapper
+
 
 @once
 def pip_install_torch():
     device = os.getenv("DEVICE", "cpu")
-    if device=="cpu":
+    if device == "cpu":
         return
     logging.info("Installing pytorch")
     pkg_names = ["torch>=2.5.0,<3.0.0"]
-    subprocess.check_call([sys.executable, "-m", "pip", "install", *pkg_names])
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install",
+        "--index-url=https://download.pytorch.org/whl/cu129", *pkg_names
+    ])
 
 
 @once
