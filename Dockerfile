@@ -2,6 +2,7 @@
 ARG BASEIMAGE=registry.home.renwei.net:5000/ragflow/base
 FROM ${BASEIMAGE}
 
+
 COPY admin admin
 COPY api api
 COPY conf conf

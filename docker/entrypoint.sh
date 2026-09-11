@@ -312,8 +312,6 @@ fi
 if [[ "${ENABLE_WEBSERVER}" -eq 1 ]]; then
     ensure_docling
 
-    echo "Starting nginx..."
-    /usr/sbin/nginx -c /etc/nginx/nginx.conf
 
     if [[ "${API_PROXY_SCHEME}" == "hybrid" ]] || [[ "${API_PROXY_SCHEME}" == "python" ]]; then
         echo "Attempt to start RAGFlow python server..."
