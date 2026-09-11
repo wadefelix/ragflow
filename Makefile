@@ -1,5 +1,5 @@
 PREFIX?=registry.home.renwei.net:5000/ragflow
-BASEIMAGE?=registry.home.renwei.net:5000/ragflow/base:v0.25.6-12-gaed60da29
+BASEIMAGE?=registry.home.renwei.net:5000/ragflow/base:v0.27.2-12-g0ef93da73
 RAGFLOW_VERSION?=$(shell git describe --tags --match=v* --first-parent --always)
 TAG:=$(RAGFLOW_VERSION)
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
