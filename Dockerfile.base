@@ -7,6 +7,8 @@ USER root
 SHELL ["/bin/bash", "-c"]
 
 ARG NEED_MIRROR=1
+# if set NEED_MIRROR=1, need to set  docker build --build-arg GITEE_TOKEN="xxxxx"  when build base image, otherwise set NEED_MIRROR=0
+ARG GITEE_TOKEN=""
 ENV RAGFLOW_VERSION=
 ENV PYTHONPATH=/ragflow/
 
@@ -36,9 +38,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 # python-pptx:   default-jdk                              tika-server-standard-3.3.0.jar
 # selenium:      libatk-bridge2.0-0                       chrome-linux64-121-0-6167-85
 # Building C extensions: libpython3-dev libgtk-4-1 libnss3 xdg-utils libgbm-dev
-RUN if [ "$NEED_MIRROR" == "1" ]; then \
-        sed -i 's|http://archive.ubuntu.com/ubuntu|https://mirrors.tuna.tsinghua.edu.cn/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources; \
-        sed -i 's|http://security.ubuntu.com/ubuntu|https://mirrors.tuna.tsinghua.edu.cn/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources; \
+RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
+    if [ "$NEED_MIRROR" == "1" ]; then \
+        # CI runners may inject a proxy whose TLS certificate is not trusted inside
+        # the fresh Ubuntu base image yet. Keep the Ubuntu mirror on HTTP here so
+        # the mirror switch remains usable before the full CA store is available.
+        sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources; \
+        sed -i 's|http://security.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|g' /etc/apt/sources.list.d/ubuntu.sources; \
     fi; \
     chmod 1777 /tmp && \
     apt update && \
@@ -50,15 +56,20 @@ RUN if [ "$NEED_MIRROR" == "1" ]; then \
     && rm -rf /var/lib/apt/lists/*
 
 # Download resource from GitHub to /usr/share/infinity
-RUN mkdir -p /usr/share/infinity/resource && \
+RUN --mount=type=secret,id=gitee_token \
+    mkdir -p /usr/share/infinity/resource && \
     if [ "$NEED_MIRROR" == "1" ]; then \
-        git clone --depth 1 --single-branch https://gitee.com/infiniflow/resource /tmp/resource; \
+
+        if [ -n "$GITEE_TOKEN" ]; then \
+            git clone --depth 1 --single-branch "https://oauth2:${GITEE_TOKEN}@gitee.com/infiniflow/resource" /tmp/resource; \
+        else \
+            git clone --depth 1 --single-branch https://github.com/infiniflow/resource.git /tmp/resource; \
+        fi; \
     else \
         git clone --depth 1 --single-branch https://github.com/infiniflow/resource.git /tmp/resource; \
     fi && \
     cp -r /tmp/resource/* /usr/share/infinity/resource && \
     rm -rf /tmp/resource
-
 
 # Install uv
 RUN --mount=type=bind,from=registry.home.renwei.net:5000/ragflow/deps:latest,source=/,target=/deps \
@@ -118,6 +129,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
 #         dpkg -i /deps/libssl1.1_1.1.1f-1ubuntu2_arm64.deb; \
 #     fi
 
+
+# Configure pip to use mirrors if needed
+RUN mkdir -p /root/.config/pip \
+    && if [ "$NEED_MIRROR" == "1" ]; then \
+    echo "[global]" > /root/.config/pip/pip.conf \
+    && echo "index-url = https://mirrors.aliyun.com/pypi/simple/" >> /root/.config/pip/pip.conf \
+    && echo "trusted-host = mirrors.aliyun.com" >> /root/.config/pip/pip.conf; \
+    fi
 
 
 # install dependencies from uv.lock file
