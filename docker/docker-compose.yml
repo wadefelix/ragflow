@@ -12,7 +12,7 @@ services:
       #  required: false
     profiles:
       - cpu
-    image: registry.home.renwei.net:5000/ragflow/ragflow:v0.27.2-32-ga89ec2492
+    image: registry.home.renwei.net:5000/ragflow/ragflow:v0.27.2-86-g7afdd2819
     pull_policy: never
     ulimits:
       nofile:
@@ -71,7 +71,7 @@ services:
   ragflow-fe:
     profiles:
       - cpu
-    image: registry.home.renwei.net:5000/ragflow/fe:v0.27.2-12-g494c8a6a1
+    image: registry.home.renwei.net:5000/ragflow/fe:v0.27.2-86-g7afdd2819
     pull_policy: never
     ports:
       - ${SVR_WEB_HTTP_PORT}:80
