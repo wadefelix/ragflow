@@ -168,6 +168,11 @@ for arg in "$@"; do
   esac
 done
 
+while IFS= read -r line; do
+  [[ "$line" =~ ^#.*$ ]] && continue
+  [[ -z "$line" ]] && continue
+  export "$line"
+done < /ragflow/ragflow.env
 # -----------------------------------------------------------------------------
 # Replace env variables in the service_conf.yaml file
 # -----------------------------------------------------------------------------
