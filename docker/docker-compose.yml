@@ -12,7 +12,7 @@ services:
       #  required: false
     profiles:
       - cpu
-    image: registry.home.renwei.net:5000/ragflow/ragflow:v0.27.2-86-g7afdd2819
+    image: registry.home.renwei.net:5000/ragflow/ragflow:v0.27.2-210-g7d2db0d4c
     pull_policy: never
     ulimits:
       nofile:
@@ -60,6 +60,7 @@ services:
       # - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./service_conf.yaml.template:/ragflow/conf/service_conf.yaml.template
       - ./entrypoint.sh:/ragflow/entrypoint.sh
+      - ./ragflow.env:/ragflow/ragflow.env
     env_file: .env
     networks:
       - ragflow
@@ -71,7 +72,7 @@ services:
   ragflow-fe:
     profiles:
       - cpu
-    image: registry.home.renwei.net:5000/ragflow/fe:v0.27.2-86-g7afdd2819
+    image: registry.home.renwei.net:5000/ragflow/fe:v0.27.2-210-g7d2db0d4c
     pull_policy: never
     ports:
       - ${SVR_WEB_HTTP_PORT}:80

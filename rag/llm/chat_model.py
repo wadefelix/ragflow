@@ -69,7 +69,6 @@ ERROR_PREFIX = "**ERROR**"
 LENGTH_NOTIFICATION_CN = "······\n由于大模型的上下文窗口大小限制，回答已经被大模型截断。"
 LENGTH_NOTIFICATION_EN = "...\nThe answer is truncated by your chosen LLM due to its limitation on context length."
 
-
 # Generation parameters that are safe to forward to the underlying completion
 # call. `gen_conf` originates from a chat assistant's `llm_setting`, which can
 # also carry RAGFlow-internal metadata (e.g. `model_type`). Anything outside
@@ -242,6 +241,7 @@ def _apply_model_family_policies(
             SupportedLiteLLMProvider.Dashscope,
         }:
             sanitized_gen_conf["enable_thinking"] = enable_thinking
+            sanitized_gen_conf["custom_llm_provider"] = "dashscope"
         else:
             target = sanitized_gen_conf if backend == "litellm" else sanitized_kwargs
             _merge_qwen_chat_template_kwargs(target, enable_thinking)
@@ -2724,6 +2724,8 @@ class LiteLLMBase(ABC):
                     completion_args = self._construct_completion_args(history=history, stream=True, tools=True, **gen_conf)
                     # Request authoritative usage on the final streaming chunk.
                     completion_args.setdefault("stream_options", {})["include_usage"] = True
+                    logger.info(f"{completion_args=}")
+                    logger.info(f"{self.provider=}")
                     response = await litellm.acompletion(
                         **completion_args,
                         drop_params=True,
