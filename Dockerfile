@@ -137,7 +137,6 @@ RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
     rm -rf /var/lib/apt/lists/* && apt-get clean
 
 
-
 # Native static-lib cache supplied by CI as a named build context
 # (--build-context native-libs=<host cache dir>). Named contexts take priority
 # over stages, so the host cache wins when passed. With no context this empty
