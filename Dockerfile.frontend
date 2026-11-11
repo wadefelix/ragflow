@@ -1,4 +1,4 @@
-FROM node:26.3.0-slim as builder
+FROM registry.home.renwei.net:5000/node:26.3.0-slim as builder
 
 WORKDIR /ragflow
 
@@ -17,7 +17,7 @@ RUN --mount=type=cache,id=ragflow_npm,target=/root/.npm,sharing=locked \
     cd web && NODE_OPTIONS="--max-old-space-size=8192" VITE_BUILD_SOURCEMAP=false VITE_MINIFY=esbuild npm run build
 
 
-FROM nginx:1.31.8
+FROM registry.home.renwei.net:5000/nginx:1.31.8
 
 ENV ADMIN_UPSTREAM=localhost
 ENV API_UPSTREAM=localhost

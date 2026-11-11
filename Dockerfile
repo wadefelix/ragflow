@@ -8,11 +8,11 @@ ARG TARGETARCH
 # --platform linux/amd64,linux/arm64). BuildKit only resolves the alias stage
 # that matches the target platform, so a single-arch build never requires both
 # runner images to be present.
-FROM infiniflow/github_action_runner:latest AS runner-amd64
+FROM registry.home.renwei.net:5000/ragflow/github_action_runner:latest AS runner-amd64
 FROM infiniflow/github_action_runner:latest-arm64 AS runner-arm64
 
 # base stage
-FROM ubuntu:24.04 AS base
+FROM registry.home.renwei.net:5000/ubuntu:24.04 AS base
 USER root
 SHELL ["/bin/bash", "-c"]
 
@@ -30,7 +30,7 @@ WORKDIR /ragflow
 # exclude them from the tar extract and symlink them to layout.onnx instead,
 # saving ~219MB in the image.
 RUN mkdir -p /ragflow/internal/rag/res/deepdoc /root/.ragflow
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co,target=/huggingface.co \
+RUN --mount=type=bind,from=registry.home.renwei.net:5000/ragflow/deps:latest,source=/huggingface.co,target=/huggingface.co \
     tar --exclude='.*' \
         --exclude='layout.laws.onnx' \
         --exclude='layout.manual.onnx' \
@@ -58,7 +58,7 @@ RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co
 # silently returned 0. localBpeLoader resolves it from <workdir>/deps/,
 # so dropping it here makes the table load offline at startup (see
 # InitCL100KEncoder fail-fast guard).
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/cl100k_base.tiktoken,target=/tmp/cl100k_base.tiktoken \
+RUN --mount=type=bind,from=registry.home.renwei.net:5000/ragflow/deps:latest,source=/cl100k_base.tiktoken,target=/tmp/cl100k_base.tiktoken \
     mkdir -p /ragflow/deps && \
     cp /tmp/cl100k_base.tiktoken /ragflow/deps/cl100k_base.tiktoken
 
@@ -68,7 +68,7 @@ RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/cl100k_base.ti
 # missing asset FAILS THE BUILD here rather than shipping an image where every tagged
 # model silently counts with the calibrated cl100k estimate. The tokenizer.json files
 # that exist only as cross-check oracles are deliberately not shipped.
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co,target=/huggingface.co \
+RUN --mount=type=bind,from=registry.home.renwei.net:5000/ragflow/deps:latest,source=/huggingface.co,target=/huggingface.co \
     for asset in \
         BAAI/bge-m3/sentencepiece.bpe.model \
         BAAI/bge-large-en-v1.5/vocab.txt \
@@ -89,7 +89,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # (downloaded + verified by deps/download_deps.py) instead of being curl'd from
 # GitHub at main-image build time. gopdf reads it at runtime from
 # /usr/local/share/fonts/truetype/noto/NotoSansCJKsc-VF.ttf (pdf_writer.go).
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/NotoSansCJKsc-VF.ttf,target=/tmp/NotoSansCJKsc-VF.ttf \
+RUN --mount=type=bind,from=registry.home.renwei.net:5000/ragflow/deps:latest,source=/NotoSansCJKsc-VF.ttf,target=/tmp/NotoSansCJKsc-VF.ttf \
     mkdir -p /usr/local/share/fonts/truetype/noto && \
     cp /tmp/NotoSansCJKsc-VF.ttf /usr/local/share/fonts/truetype/noto/NotoSansCJKsc-VF.ttf
 

@@ -10,7 +10,7 @@ services:
         required: false
     profiles:
       - cpu
-    image: ragflow:latest
+    image: registry.home.renwei.net:5000/ragflow/ragflow
     ulimits:
       nofile:
         soft: 65535
@@ -60,7 +60,7 @@ services:
   ragflow-fe:
     profiles:
       - cpu
-    image: ragflow-fe:latest
+    image: registry.home.renwei.net:5000/ragflow/fe
     pull_policy: never
     ports:
       - ${SVR_WEB_HTTP_PORT}:80
