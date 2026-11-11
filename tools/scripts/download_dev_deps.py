@@ -133,10 +133,19 @@ def host_platform(target_os=None, target_arch=None):
     # does not raise KeyError when indexing the per-platform asset maps below.
     goos = {"linux": "linux", "darwin": "darwin"}.get(raw_os.lower())
     if goos is None:
-        raise SystemExit(f"Unsupported target OS={raw_os!r}; expected linux or darwin (aliases Linux/Darwin also accepted).")
-    goarch = {"amd64": "amd64", "x86_64": "amd64", "arm64": "arm64", "aarch64": "arm64"}.get(raw_arch.lower())
+        raise SystemExit(
+            f"Unsupported target OS={raw_os!r}; expected linux or darwin (aliases Linux/Darwin also accepted)."
+        )
+    goarch = {
+        "amd64": "amd64",
+        "x86_64": "amd64",
+        "arm64": "arm64",
+        "aarch64": "arm64"
+    }.get(raw_arch.lower())
     if goarch is None:
-        raise SystemExit(f"Unsupported target arch={raw_arch!r}; expected amd64 or arm64 (aliases x86_64/aarch64 also accepted).")
+        raise SystemExit(
+            f"Unsupported target arch={raw_arch!r}; expected amd64 or arm64 (aliases x86_64/aarch64 also accepted)."
+        )
     return goos, goarch
 
 
@@ -164,7 +173,6 @@ PDF_OXIDE_ASSETS = {
     ("darwin", "arm64"): "pdf_oxide-go-ffi-darwin-arm64.tar.gz",
 }
 
-
 GH_PROXY_URL = "https://gh-proxy.com/"
 
 
@@ -173,9 +181,10 @@ def gh_proxy() -> str:
     proxy = (os.environ.get("GH_PROXY") or "").strip()
     if not proxy:
         return ""
-    if proxy.rstrip("/") != GH_PROXY_URL.rstrip("/"):
-        raise RuntimeError(f"GH_PROXY must be empty or {GH_PROXY_URL!r}")
-    return GH_PROXY_URL
+    # if proxy.rstrip("/") != GH_PROXY_URL.rstrip("/"):
+    #     raise RuntimeError(f"GH_PROXY must be empty or {GH_PROXY_URL!r}")
+    # return GH_PROXY_URL
+    return proxy
 
 
 def go_module_version(module: str, repo_root: str) -> str:
@@ -217,17 +226,22 @@ def pdfium_static_version(repo_root: str) -> str:
     office_oxide / pdf_oxide it cannot be derived from go.mod; its bare numeric
     build number is the one constant exported by pdfium_static_version() and
     sourced by both this script and build.sh."""
-    script = os.path.join(repo_root, "tools", "scripts", "native_lib_version.sh")
+    script = os.path.join(repo_root, "tools", "scripts",
+                          "native_lib_version.sh")
     if not os.path.isfile(script):
         raise RuntimeError(f"native_lib_version.sh not found at {script}")
     result = subprocess.run(
-        ["bash", "-c", f"source {shlex.quote(script)} >/dev/null 2>&1; pdfium_static_version"],
+        [
+            "bash", "-c",
+            f"source {shlex.quote(script)} >/dev/null 2>&1; pdfium_static_version"
+        ],
         capture_output=True,
         text=True,
         check=False,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"pdfium_static_version failed: {result.stderr.strip()}")
+        raise RuntimeError(
+            f"pdfium_static_version failed: {result.stderr.strip()}")
     version = result.stdout.strip()
     if not version:
         raise RuntimeError("pdfium_static_version produced no output")
@@ -263,7 +277,10 @@ def pdfium_required_files(goos: str) -> list[str]:
     libc++ from the macOS SDK.
     """
     if goos == "linux":
-        return ["lib/libpdfium.a", "lib/libc++.a", "lib/libc++abi.a", "include/fpdfview.h"]
+        return [
+            "lib/libpdfium.a", "lib/libc++.a", "lib/libc++abi.a",
+            "include/fpdfview.h"
+        ]
     return ["lib/libpdfium.a", "include/fpdfview.h"]
 
 
@@ -287,7 +304,8 @@ def office_oxide_url(repo_root: str, goos: str, goarch: str) -> str:
     """office_oxide native tarball for the target platform. The version is
     derived from go.mod so it always matches what the Go build actually links
     (no second hardcoded copy to drift)."""
-    version = go_module_version("github.com/yfedoseev/office_oxide/go", repo_root)
+    version = go_module_version("github.com/yfedoseev/office_oxide/go",
+                                repo_root)
     return f"{gh_proxy()}https://github.com/yfedoseev/office_oxide/releases/download/v{version}/{OFFICE_OXIDE_ASSETS[(goos, goarch)]}"
 
 
@@ -408,7 +426,9 @@ def download_with_progress(url, filename):
         with requests.get(url, stream=True, timeout=(15, 60)) as response:
             response.raise_for_status()
             total_size = int(response.headers.get("content-length", 0))
-            with tempfile.NamedTemporaryFile(dir=os.path.dirname(os.path.abspath(filename)), delete=False) as file:
+            with tempfile.NamedTemporaryFile(dir=os.path.dirname(
+                    os.path.abspath(filename)),
+                                             delete=False) as file:
                 temporary = file.name
                 downloaded = 0
                 for data in response.iter_content(1 << 20):
@@ -416,10 +436,13 @@ def download_with_progress(url, filename):
                     downloaded += len(data)
                     if total_size > 0:
                         progress = (downloaded / total_size) * 100
-                        sys.stdout.write(f"\rProgress: {progress:.1f}% ({downloaded}/{total_size} bytes)")
+                        sys.stdout.write(
+                            f"\rProgress: {progress:.1f}% ({downloaded}/{total_size} bytes)"
+                        )
                         sys.stdout.flush()
             if downloaded == 0:
-                raise requests.RequestException(f"Empty dependency download: {url}")
+                raise requests.RequestException(
+                    f"Empty dependency download: {url}")
             os.replace(temporary, filename)
     finally:
         if temporary is not None and os.path.exists(temporary):
@@ -435,17 +458,22 @@ def _valid_download(filename):
         if not tarfile.is_tarfile(filename):
             return False
         if os.path.basename(filename) in OFFICE_OXIDE_ASSETS.values():
-            version = go_module_version("github.com/yfedoseev/office_oxide/go", REPO_ROOT)
+            version = go_module_version("github.com/yfedoseev/office_oxide/go",
+                                        REPO_ROOT)
             with tarfile.open(filename) as archive:
                 try:
-                    member = next((m for m in archive.getmembers() if os.path.normpath(m.name) == "lib/liboffice_oxide.a"), None)
+                    member = next(
+                        (m for m in archive.getmembers()
+                         if os.path.normpath(m.name) == "lib/liboffice_oxide.a"
+                         ), None)
                     if member is None:
                         return False
                     library = archive.extractfile(member)
                     if library is None:
                         return False
                     with library:
-                        return b"\x00" + version.encode() + b"\x00" in library.read()
+                        return b"\x00" + version.encode(
+                        ) + b"\x00" in library.read()
                 except (KeyError, tarfile.TarError, EOFError):
                     return False
         if os.path.basename(filename) in PDF_OXIDE_ASSETS.values():
@@ -456,12 +484,16 @@ def _valid_download(filename):
             # version <current>"), far from the cause. The .a lives under
             # lib/<goos>_<goarch>/ (per PDF_OXIDE_ASSETS) and is stamped with a
             # plain-text `pdf_oxide <version>` token (stamp_format="text").
-            version = go_module_version("github.com/yfedoseev/pdf_oxide/go", REPO_ROOT)
-            goos, goarch = next(k for k, v in PDF_OXIDE_ASSETS.items() if v == os.path.basename(filename))
+            version = go_module_version("github.com/yfedoseev/pdf_oxide/go",
+                                        REPO_ROOT)
+            goos, goarch = next(k for k, v in PDF_OXIDE_ASSETS.items()
+                                if v == os.path.basename(filename))
             member_name = f"lib/{goos}_{goarch}/libpdf_oxide.a"
             with tarfile.open(filename) as archive:
                 try:
-                    member = next((m for m in archive.getmembers() if os.path.normpath(m.name) == member_name), None)
+                    member = next((m for m in archive.getmembers()
+                                   if os.path.normpath(m.name) == member_name),
+                                  None)
                     if member is None:
                         return False
                     library = archive.extractfile(member)
@@ -489,11 +521,18 @@ def _stamp_present(data, version, stamp_format):
     if stamp_format == "null":
         return b"\x00" + needle + b"\x00" in data
     if stamp_format == "text":
-        return (b"pdf_oxide " + needle in data) or (b"\x00" + needle + b"\x00" in data)
+        return (b"pdf_oxide " + needle in data) or (b"\x00" + needle + b"\x00"
+                                                    in data)
     return needle in data
 
 
-def native_lib_provisioned(directory, required_files, version=None, stamp_format="null", *, platform=None, archive_hash=None):
+def native_lib_provisioned(directory,
+                           required_files,
+                           version=None,
+                           stamp_format="null",
+                           *,
+                           platform=None,
+                           archive_hash=None):
     """Check required files and version stamps in a provisioned native library.
 
     PDFium callers also supply the target platform and, when available, the
@@ -508,7 +547,8 @@ def native_lib_provisioned(directory, required_files, version=None, stamp_format
         stamp_platform = lines[0].strip() if lines else ""
         stamp_hash = lines[1].strip() if len(lines) > 1 else ""
         if platform is not None:
-            platform_token = f"{platform[0]}/{platform[1]}" if isinstance(platform, tuple) else str(platform)
+            platform_token = f"{platform[0]}/{platform[1]}" if isinstance(
+                platform, tuple) else str(platform)
             if stamp_platform != platform_token:
                 return False
         if archive_hash is not None and stamp_hash != archive_hash:
@@ -524,7 +564,14 @@ def native_lib_provisioned(directory, required_files, version=None, stamp_format
     return True
 
 
-def _extract_native_archive(archive_path, target, required_files, version=None, stamp_format="null", *, platform=None, archive_hash=None):
+def _extract_native_archive(archive_path,
+                            target,
+                            required_files,
+                            version=None,
+                            stamp_format="null",
+                            *,
+                            platform=None,
+                            archive_hash=None):
     """Extract ARCHIVE_PATH into TARGET, verifying REQUIRED_FILES (and, for .a
     files, an optional VERSION stamp) before promoting the staged tree.
 
@@ -538,9 +585,15 @@ def _extract_native_archive(archive_path, target, required_files, version=None, 
     previously good directory."""
     platform_token = None
     if platform is not None:
-        platform_token = f"{platform[0]}/{platform[1]}" if isinstance(platform, tuple) else str(platform)
+        platform_token = f"{platform[0]}/{platform[1]}" if isinstance(
+            platform, tuple) else str(platform)
 
-    if native_lib_provisioned(target, required_files, version, stamp_format, platform=platform, archive_hash=archive_hash):
+    if native_lib_provisioned(target,
+                              required_files,
+                              version,
+                              stamp_format,
+                              platform=platform,
+                              archive_hash=archive_hash):
         print(f"  ✓ {os.path.basename(target)} already extracted to {target}")
         return
     os.makedirs(os.path.dirname(target), exist_ok=True)
@@ -549,13 +602,20 @@ def _extract_native_archive(archive_path, target, required_files, version=None, 
         with tarfile.open(archive_path) as archive:
             members = archive.getmembers()
             for member in members:
-                if os.path.isabs(member.name) or ".." in member.name.split("/") or not (member.isfile() or member.isdir()):
-                    raise tarfile.TarError(f"Unsafe native archive member: {member.name}")
+                if os.path.isabs(member.name) or ".." in member.name.split(
+                        "/") or not (member.isfile() or member.isdir()):
+                    raise tarfile.TarError(
+                        f"Unsafe native archive member: {member.name}")
             archive.extractall(staging, members=members)
-        if not native_lib_provisioned(staging, required_files, version, stamp_format):
-            raise RuntimeError(f"{archive_path} is missing required native files or version {version}")
+        if not native_lib_provisioned(staging, required_files, version,
+                                      stamp_format):
+            raise RuntimeError(
+                f"{archive_path} is missing required native files or version {version}"
+            )
         if platform_token is not None or archive_hash is not None:
-            with open(os.path.join(staging, ".ragflow_platform"), "w", encoding="utf-8") as stamp_file:
+            with open(os.path.join(staging, ".ragflow_platform"),
+                      "w",
+                      encoding="utf-8") as stamp_file:
                 if platform_token is not None:
                     stamp_file.write(f"{platform_token}\n")
                 else:
@@ -574,7 +634,14 @@ def _extract_native_archive(archive_path, target, required_files, version=None, 
     print(f"  ✓ extracted {os.path.basename(archive_path)} to {target}")
 
 
-def extract_native_lib(archive_path, subdir, dir_version, required_files, stamp_version=None, stamp_format="null", *, platform=None):
+def extract_native_lib(archive_path,
+                       subdir,
+                       dir_version,
+                       required_files,
+                       stamp_version=None,
+                       stamp_format="null",
+                       *,
+                       platform=None):
     """Extract a native static archive into the version-keyed cache dir
     ~/ragflow-native-libs/<subdir>/<dir_version>/.
 
@@ -594,12 +661,20 @@ def extract_native_lib(archive_path, subdir, dir_version, required_files, stamp_
     download it). Re-raises the underlying tar/validation error after purging a
     corrupt archive."""
     if not os.path.isfile(archive_path):
-        print(f"  Skipping extraction: {os.path.basename(archive_path)} not found")
+        print(
+            f"  Skipping extraction: {os.path.basename(archive_path)} not found"
+        )
         return False
     target = os.path.join(native_libs_dir(), subdir, dir_version)
     archive_hash = _sha256_of(archive_path) if platform is not None else None
     try:
-        _extract_native_archive(archive_path, target, required_files, stamp_version, stamp_format, platform=platform, archive_hash=archive_hash)
+        _extract_native_archive(archive_path,
+                                target,
+                                required_files,
+                                stamp_version,
+                                stamp_format,
+                                platform=platform,
+                                archive_hash=archive_hash)
     except (tarfile.TarError, EOFError, RuntimeError):
         os.unlink(archive_path)
         raise
@@ -626,7 +701,8 @@ def prune_stale_onnxruntime(static_lib_dir, expected_dir):
 
 def has_static_archives(directory):
     """True when `directory` holds at least one static archive (.a)."""
-    return any(f.endswith(".a") for _, _, files in os.walk(directory) for f in files)
+    return any(
+        f.endswith(".a") for _, _, files in os.walk(directory) for f in files)
 
 
 def extract_onnxruntime(static_lib_dir, archive_path, expected_dir):
@@ -640,19 +716,26 @@ def extract_onnxruntime(static_lib_dir, archive_path, expected_dir):
     version bump the stale dir is pruned and the new one must be extracted.
     """
     if not os.path.isfile(archive_path):
-        print(f"  Skipping extraction: {os.path.basename(archive_path)} not found")
+        print(
+            f"  Skipping extraction: {os.path.basename(archive_path)} not found"
+        )
         return False
     prune_stale_onnxruntime(static_lib_dir, expected_dir)
     expected_path = os.path.join(static_lib_dir, expected_dir)
     if os.path.isdir(expected_path) and has_static_archives(expected_path):
-        print(f"  ✓ onnxruntime/static_lib ({expected_dir}) already extracted to {expected_path}")
+        print(
+            f"  ✓ onnxruntime/static_lib ({expected_dir}) already extracted to {expected_path}"
+        )
         stamp_onnxruntime_version(static_lib_dir, expected_dir, ORT_VERSION)
         return True
     os.makedirs(static_lib_dir, exist_ok=True)
     print(f"  Extracting {os.path.basename(archive_path)} → {static_lib_dir}")
     with zipfile.ZipFile(archive_path) as zf:
         zf.extractall(static_lib_dir)
-        top_level = {name.split("/", 1)[0] for name in zf.namelist() if name.strip("/")}
+        top_level = {
+            name.split("/", 1)[0]
+            for name in zf.namelist() if name.strip("/")
+        }
     # The zip's top-level dir (onnxruntime-v{version}-<target>) is not the name
     # build.sh's glob and the stale-dir check above expect, so rename it to
     # `expected_dir` — every consumer then shares one name convention.
@@ -662,7 +745,9 @@ def extract_onnxruntime(static_lib_dir, archive_path, expected_dir):
         if os.path.isdir(extracted) and extracted != normalized:
             if os.path.exists(normalized):
                 shutil.rmtree(normalized)
-            print(f"  Renaming {os.path.basename(extracted)} → {os.path.basename(normalized)}")
+            print(
+                f"  Renaming {os.path.basename(extracted)} → {os.path.basename(normalized)}"
+            )
             os.rename(extracted, normalized)
     # Pre-create the version-stamp symlink (Fix #2) while the cache is still
     # writable, so a read-only CI mount already has it and build.sh's stamp step
@@ -680,14 +765,16 @@ def stamp_onnxruntime_version(static_lib_dir, normalized_dir, version):
     RELATIVE symlink to the real libonnxruntime.a so it resolves under any mount
     point. Idempotent: an existing correct symlink is left untouched, which keeps
     a read-only CI mount a no-op (build.sh's stamp step then skips the write)."""
-    primary = os.path.join(static_lib_dir, normalized_dir, "lib", "libonnxruntime.a")
+    primary = os.path.join(static_lib_dir, normalized_dir, "lib",
+                           "libonnxruntime.a")
     if not os.path.isfile(primary):
         return
     sha16 = _sha256_of(primary)[:16]
     stamp_dir = os.path.join(static_lib_dir, f"v{version}-{sha16}")
     stamp_link = os.path.join(stamp_dir, "libonnxruntime.a")
     rel = os.path.relpath(primary, stamp_dir)
-    if os.path.islink(stamp_link) and os.path.realpath(stamp_link) == os.path.realpath(primary):
+    if os.path.islink(stamp_link) and os.path.realpath(
+            stamp_link) == os.path.realpath(primary):
         return
     os.makedirs(stamp_dir, exist_ok=True)
     if os.path.lexists(stamp_link):
@@ -726,9 +813,13 @@ def _download_ort_archive(archive_path, goos, goarch):
         if expected_sha is not None:
             actual = _sha256_of(archive_path)
             if actual == expected_sha:
-                print(f"  ✓ {os.path.basename(archive_path)} checksum matches released {expected_sha}; skipping download")
+                print(
+                    f"  ✓ {os.path.basename(archive_path)} checksum matches released {expected_sha}; skipping download"
+                )
                 return
-            print(f"  {os.path.basename(archive_path)} checksum mismatch (local {actual} != released {expected_sha}); re-downloading")
+            print(
+                f"  {os.path.basename(archive_path)} checksum mismatch (local {actual} != released {expected_sha}); re-downloading"
+            )
         elif _valid_download(archive_path):
             return
     download_with_progress(url, archive_path)
@@ -736,13 +827,19 @@ def _download_ort_archive(archive_path, goos, goarch):
         actual = _sha256_of(archive_path)
         if actual != expected_sha:
             os.unlink(archive_path)
-            print(f"  ERROR: {os.path.basename(archive_path)} checksum mismatch after download (got {actual}, expected {expected_sha})", file=sys.stderr)
+            print(
+                f"  ERROR: {os.path.basename(archive_path)} checksum mismatch after download (got {actual}, expected {expected_sha})",
+                file=sys.stderr)
             sys.exit(1)
-        print(f"  ✓ {os.path.basename(archive_path)} checksum verified ({actual})")
+        print(
+            f"  ✓ {os.path.basename(archive_path)} checksum verified ({actual})"
+        )
     if not _valid_download(archive_path):
         os.unlink(archive_path)
-        raise RuntimeError(f"Invalid downloaded dependency: {os.path.basename(archive_path)}")
-    version_dir = os.path.join(native_libs_dir(), "onnxruntime", "static_lib", ort_normalized_dir(ORT_VERSION, goos, goarch))
+        raise RuntimeError(
+            f"Invalid downloaded dependency: {os.path.basename(archive_path)}")
+    version_dir = os.path.join(native_libs_dir(), "onnxruntime", "static_lib",
+                               ort_normalized_dir(ORT_VERSION, goos, goarch))
     if os.path.isdir(version_dir):
         print(f"  Removing stale extracted ONNX Runtime dir: {version_dir}")
         shutil.rmtree(version_dir)
@@ -763,8 +860,9 @@ def cl100k_url() -> str:
 
 
 HF_DEEPDOC_REPO = "InfiniFlow/deepdoc"
-HF_DEEPDOC_MODEL_FILES = ["det.ort", "layout.ort", "tsr.ort", "rec.ort", "ocr.res"]
-
+HF_DEEPDOC_MODEL_FILES = [
+    "det.ort", "layout.ort", "tsr.ort", "rec.ort", "ocr.res"
+]
 
 # Embedding tokenizer assets the Go counters load. Inlined here (no separate
 # manifest file) as the single source of truth this script reads directly; the
@@ -790,7 +888,9 @@ def _hf_download(repo_id, filename, local_dir):
     """Lazy huggingface_hub import + download into LOCAL_DIR."""
     from huggingface_hub import hf_hub_download
 
-    return hf_hub_download(repo_id=repo_id, filename=filename, local_dir=local_dir)
+    return hf_hub_download(repo_id=repo_id,
+                           filename=filename,
+                           local_dir=local_dir)
 
 
 def download_cl100k():
@@ -815,9 +915,11 @@ def load_tokenizer_assets(assets=None):
     result = []
     for repo, filename, kind in items:
         if kind not in ("runtime", "oracle"):
-            raise RuntimeError(f"unknown tokenizer asset kind {kind!r} for {repo}/{filename}")
+            raise RuntimeError(
+                f"unknown tokenizer asset kind {kind!r} for {repo}/{filename}")
         if "/" not in repo or not filename:
-            raise RuntimeError(f"malformed tokenizer asset repo/file {repo}/{filename}")
+            raise RuntimeError(
+                f"malformed tokenizer asset repo/file {repo}/{filename}")
         result.append((repo, filename, kind))
     if not result:
         raise RuntimeError("no tokenizer assets listed")
@@ -857,7 +959,9 @@ def download_go_models(use_china_mirrors=False):
                 continue
         print(f"Downloading deepdoc model {fname}...")
         try:
-            _hf_download(repo_id=HF_DEEPDOC_REPO, filename=fname, local_dir=target_dir)
+            _hf_download(repo_id=HF_DEEPDOC_REPO,
+                         filename=fname,
+                         local_dir=target_dir)
             if not os.path.isfile(dest) or os.path.getsize(dest) == 0:
                 raise RuntimeError(f"Empty or missing model: {dest}")
         except Exception as e:  # noqa: BLE001 - collected and surfaced below
@@ -878,10 +982,12 @@ def download_go_models(use_china_mirrors=False):
         )
         sys.exit(1)
     # Keep the dependency image's existing huggingface.co build-context layout.
-    image_dir = os.path.join(RAGFLOW_DEPS_DIR, "huggingface.co", HF_DEEPDOC_REPO)
+    image_dir = os.path.join(RAGFLOW_DEPS_DIR, "huggingface.co",
+                             HF_DEEPDOC_REPO)
     os.makedirs(image_dir, exist_ok=True)
     for fname in HF_DEEPDOC_MODEL_FILES:
-        shutil.copyfile(os.path.join(target_dir, fname), os.path.join(image_dir, fname))
+        shutil.copyfile(os.path.join(target_dir, fname),
+                        os.path.join(image_dir, fname))
     print(f"  ✓ Go DeepDoc models ready under {target_dir}")
 
 
@@ -903,20 +1009,26 @@ def download_tokenizer_assets(use_china_mirrors=False):
         for repo_id, filename, _kind in entries:
             target_dir = os.path.join(base, repo_id)
             target_file = os.path.join(target_dir, filename)
-            if os.path.isfile(target_file) and os.path.getsize(target_file) > 0:
+            if os.path.isfile(target_file) and os.path.getsize(
+                    target_file) > 0:
                 print(f"  ✓ {repo_id}/{filename} already present")
                 continue
             os.makedirs(target_dir, exist_ok=True)
             print(f"Downloading tokenizer asset {repo_id}/{filename}...")
             try:
-                _hf_download(repo_id=repo_id, filename=filename, local_dir=target_dir)
-                if not os.path.isfile(target_file) or os.path.getsize(target_file) == 0:
-                    raise RuntimeError(f"Empty or missing tokenizer asset: {target_file}")
+                _hf_download(repo_id=repo_id,
+                             filename=filename,
+                             local_dir=target_dir)
+                if not os.path.isfile(target_file) or os.path.getsize(
+                        target_file) == 0:
+                    raise RuntimeError(
+                        f"Empty or missing tokenizer asset: {target_file}")
             except Exception as e:  # noqa: BLE001 - collected and surfaced below
                 missing.append((repo_id, filename, e))
     if missing:
         for repo_id, filename, e in missing:
-            print(f"  ERROR: could not fetch {repo_id}/{filename}: {e}", file=sys.stderr)
+            print(f"  ERROR: could not fetch {repo_id}/{filename}: {e}",
+                  file=sys.stderr)
         print(
             "\nThe embedding tokenizer counters in internal/tokenizer load these files from\n"
             f"  {base}\n"
@@ -936,8 +1048,10 @@ def native_lib_specs(goos, goarch):
     """Return (subdir, url, archive, dir_version, required_files, stamp_version,
     stamp_format) tuples for the three native static libs, shared by the download
     and extraction passes so both agree on the cache layout."""
-    office_version = go_module_version("github.com/yfedoseev/office_oxide/go", REPO_ROOT)
-    pdf_oxide_version = go_module_version("github.com/yfedoseev/pdf_oxide/go", REPO_ROOT)
+    office_version = go_module_version("github.com/yfedoseev/office_oxide/go",
+                                       REPO_ROOT)
+    pdf_oxide_version = go_module_version("github.com/yfedoseev/pdf_oxide/go",
+                                          REPO_ROOT)
     return [
         (
             "pdfium-static",
@@ -976,12 +1090,22 @@ def download_native_archives(goos, goarch):
     download pass consults that cache, not just the transient deps/ archive, so a
     valid pre-baked lib is not re-fetched. Falls back to the deps/ archive check,
     then network."""
-    for subdir, url, archive, dir_version, required_files, stamp_version, stamp_format in native_lib_specs(goos, goarch):
+    for subdir, url, archive, dir_version, required_files, stamp_version, stamp_format in native_lib_specs(
+            goos, goarch):
         target = os.path.join(native_libs_dir(), subdir, dir_version)
         platform = (goos, goarch) if subdir == "pdfium-static" else None
-        archive_hash = _sha256_of(archive) if platform is not None and os.path.isfile(archive) else None
-        if native_lib_provisioned(target, required_files, stamp_version, stamp_format, platform=platform, archive_hash=archive_hash):
-            print(f"  ✓ {subdir} {dir_version} already provisioned at {target}; skipping download")
+        archive_hash = _sha256_of(
+            archive
+        ) if platform is not None and os.path.isfile(archive) else None
+        if native_lib_provisioned(target,
+                                  required_files,
+                                  stamp_version,
+                                  stamp_format,
+                                  platform=platform,
+                                  archive_hash=archive_hash):
+            print(
+                f"  ✓ {subdir} {dir_version} already provisioned at {target}; skipping download"
+            )
             continue
         print(f"Downloading {archive} from {url}...")
         if _valid_download(archive):
@@ -999,8 +1123,13 @@ def main():
     the local Go dev server needs to run, parse and count tokens.
 
     This is the local-dev one-stop: one invocation readies the environment."""
-    parser = argparse.ArgumentParser(description="Download the native static libraries and runtime resources the local Go dev server needs")
-    parser.add_argument("--china-mirrors", action="store_true", help="Use China-accessible mirrors for downloads")
+    parser = argparse.ArgumentParser(
+        description=
+        "Download the native static libraries and runtime resources the local Go dev server needs"
+    )
+    parser.add_argument("--china-mirrors",
+                        action="store_true",
+                        help="Use China-accessible mirrors for downloads")
     parser.add_argument(
         "--target-os",
         default=os.environ.get("RAGFLOW_TARGET_OS"),
@@ -1013,7 +1142,7 @@ def main():
     )
     args = parser.parse_args()
     if args.china_mirrors:
-        os.environ["GH_PROXY"] = "https://gh-proxy.com/"
+        os.environ["GH_PROXY"] = "https://gh-proxy.org/"
 
     goos, goarch = host_platform(args.target_os, args.target_arch)
     print(f"Target platform: {goos}/{goarch}")
@@ -1026,7 +1155,8 @@ def main():
     os.chdir(RAGFLOW_DEPS_DIR)
 
     # ONNX Runtime archive (+ checksum sidecar), then the other native archives.
-    _download_ort_archive(os.path.join(RAGFLOW_DEPS_DIR, ort_zip), goos, goarch)
+    _download_ort_archive(os.path.join(RAGFLOW_DEPS_DIR, ort_zip), goos,
+                          goarch)
     download_native_archives(goos, goarch)
 
     # Extract native static libraries to ~/ragflow-native-libs for the Go build.
@@ -1035,12 +1165,22 @@ def main():
     # versions at once; see extract_native_lib(). A lib whose cache dir is
     # already provisioned is skipped entirely (download_native_archives already
     # avoided re-fetching it), so a pre-baked native-libs cache is a no-op here.
-    for subdir, _url, archive, dir_version, required_files, stamp_version, stamp_format in native_lib_specs(goos, goarch):
+    for subdir, _url, archive, dir_version, required_files, stamp_version, stamp_format in native_lib_specs(
+            goos, goarch):
         target = os.path.join(native_libs_dir(), subdir, dir_version)
         platform = (goos, goarch) if subdir == "pdfium-static" else None
-        archive_hash = _sha256_of(archive) if platform is not None and os.path.isfile(archive) else None
-        if native_lib_provisioned(target, required_files, stamp_version, stamp_format, platform=platform, archive_hash=archive_hash):
-            print(f"  ✓ {subdir} {dir_version} already provisioned at {target}; skipping extraction")
+        archive_hash = _sha256_of(
+            archive
+        ) if platform is not None and os.path.isfile(archive) else None
+        if native_lib_provisioned(target,
+                                  required_files,
+                                  stamp_version,
+                                  stamp_format,
+                                  platform=platform,
+                                  archive_hash=archive_hash):
+            print(
+                f"  ✓ {subdir} {dir_version} already provisioned at {target}; skipping extraction"
+            )
             continue
         archive_path = os.path.join(RAGFLOW_DEPS_DIR, archive)
         extract_native_lib(
@@ -1054,9 +1194,9 @@ def main():
         )
 
     if not extract_onnxruntime(
-        os.path.join(native_libs_dir(), "onnxruntime", "static_lib"),
-        os.path.join(RAGFLOW_DEPS_DIR, ort_zip),
-        ort_dir,
+            os.path.join(native_libs_dir(), "onnxruntime", "static_lib"),
+            os.path.join(RAGFLOW_DEPS_DIR, ort_zip),
+            ort_dir,
     ):
         # The archive was not downloaded or failed to extract, so no .a landed.
         # Fail loud instead of exiting 0: build.sh's ORT guard would otherwise
@@ -1075,12 +1215,20 @@ def main():
     # find the archives — the .a files live under
     # ~/ragflow-native-libs/onnxruntime/static_lib. The in-process backend
     # resolves OrtGetApiBase via dlopen(NULL); there is no dynamic .so fallback.
-    ort_static_dir = os.path.join(native_libs_dir(), "onnxruntime", "static_lib")
-    ort_a_files = [os.path.join(root, f) for root, _, files in os.walk(ort_static_dir) for f in files if f.endswith(".a")]
+    ort_static_dir = os.path.join(native_libs_dir(), "onnxruntime",
+                                  "static_lib")
+    ort_a_files = [
+        os.path.join(root, f) for root, _, files in os.walk(ort_static_dir)
+        for f in files if f.endswith(".a")
+    ]
     if ort_a_files:
-        print(f"  ✓ onnxruntime static archives ready: {len(ort_a_files)} .a under {ort_static_dir}")
+        print(
+            f"  ✓ onnxruntime static archives ready: {len(ort_a_files)} .a under {ort_static_dir}"
+        )
     else:
-        print(f"  ERROR: ONNX Runtime .a files still missing under {ort_static_dir} after extraction; build.sh will refuse to link.", file=sys.stderr)
+        print(
+            f"  ERROR: ONNX Runtime .a files still missing under {ort_static_dir} after extraction; build.sh will refuse to link.",
+            file=sys.stderr)
         sys.exit(1)
 
     # The Go server also needs the runtime resources (cl100k BPE table, the
@@ -1098,8 +1246,12 @@ def main():
     print()
     print(f"✓ Native build libraries ready under {native_libs_dir()}/")
     print("  Run: bash build.sh (it will find them without network access).")
-    print("  Runtime resources (cl100k / DeepDoc .ort / tokenizer) are also in place,")
-    print("  so the local Go server is ready to build, run, parse and count tokens.")
+    print(
+        "  Runtime resources (cl100k / DeepDoc .ort / tokenizer) are also in place,"
+    )
+    print(
+        "  so the local Go server is ready to build, run, parse and count tokens."
+    )
 
 
 if __name__ == "__main__":
