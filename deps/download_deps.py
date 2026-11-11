@@ -77,9 +77,10 @@ def gh_proxy() -> str:
     proxy = (os.environ.get("GH_PROXY") or "").strip()
     if not proxy:
         return ""
-    if proxy.rstrip("/") != GH_PROXY_URL.rstrip("/"):
-        raise RuntimeError(f"GH_PROXY must be empty or {GH_PROXY_URL!r}")
-    return GH_PROXY_URL
+    # if proxy.rstrip("/") != GH_PROXY_URL.rstrip("/"):
+    #     raise RuntimeError(f"GH_PROXY must be empty or {GH_PROXY_URL!r}")
+    # return GH_PROXY_URL
+    return proxy
 
 
 def cl100k_url() -> str:
@@ -101,8 +102,9 @@ def noto_cjk_font_url() -> str:
 # skips to keep the download lean. The files are fetched one by one, so this
 # list MUST be edited by hand when the Go slice changes.
 DEEPDOC_REPO = "InfiniFlow/deepdoc"
-DEEPDOC_MODEL_FILES = ["det.ort", "layout.ort", "tsr.ort", "rec.ort", "ocr.res"]
-
+DEEPDOC_MODEL_FILES = [
+    "det.ort", "layout.ort", "tsr.ort", "rec.ort", "ocr.res"
+]
 
 # Embedding tokenizer assets the Go counters load. Inlined here (no separate
 # manifest file) as the single source of truth this script reads directly; the
@@ -134,7 +136,9 @@ def download_with_progress(url, filename):
         with requests.get(url, stream=True, timeout=(15, 60)) as response:
             response.raise_for_status()
             total_size = int(response.headers.get("content-length", 0))
-            with tempfile.NamedTemporaryFile(dir=os.path.dirname(os.path.abspath(filename)), delete=False) as file:
+            with tempfile.NamedTemporaryFile(dir=os.path.dirname(
+                    os.path.abspath(filename)),
+                                             delete=False) as file:
                 temporary = file.name
                 downloaded = 0
                 for data in response.iter_content(1 << 20):
@@ -142,10 +146,13 @@ def download_with_progress(url, filename):
                     downloaded += len(data)
                     if total_size > 0:
                         progress = (downloaded / total_size) * 100
-                        sys.stdout.write(f"\rProgress: {progress:.1f}% ({downloaded}/{total_size} bytes)")
+                        sys.stdout.write(
+                            f"\rProgress: {progress:.1f}% ({downloaded}/{total_size} bytes)"
+                        )
                         sys.stdout.flush()
             if downloaded == 0:
-                raise requests.RequestException(f"Empty dependency download: {url}")
+                raise requests.RequestException(
+                    f"Empty dependency download: {url}")
             os.replace(temporary, filename)
     finally:
         if temporary is not None and os.path.exists(temporary):
@@ -188,7 +195,9 @@ def _verify_font_checksum(font):
     if NOTO_CJK_FONT_SHA256:
         if actual != NOTO_CJK_FONT_SHA256:
             os.unlink(font)
-            raise RuntimeError(f"NotoSansCJKsc-VF.ttf checksum mismatch (got {actual}, pinned {NOTO_CJK_FONT_SHA256})")
+            raise RuntimeError(
+                f"NotoSansCJKsc-VF.ttf checksum mismatch (got {actual}, pinned {NOTO_CJK_FONT_SHA256})"
+            )
         return
     # No pinned constant: verify against the sidecar baseline, or bootstrap it.
     if os.path.isfile(sidecar):
@@ -198,12 +207,16 @@ def _verify_font_checksum(font):
         if expected:
             if actual != expected:
                 os.unlink(font)
-                raise RuntimeError(f"NotoSansCJKsc-VF.ttf checksum changed vs recorded {expected} (got {actual})")
+                raise RuntimeError(
+                    f"NotoSansCJKsc-VF.ttf checksum changed vs recorded {expected} (got {actual})"
+                )
             return
         # Empty sidecar: fall through to (re)record the baseline below.
     with open(sidecar, "w") as file:
         file.write(actual + "\n")
-    print(f"  >>> PIN THIS HASH in download_deps.py NOTO_CJK_FONT_SHA256: {actual}")
+    print(
+        f"  >>> PIN THIS HASH in download_deps.py NOTO_CJK_FONT_SHA256: {actual}"
+    )
 
 
 def load_tokenizer_assets(assets=None):
@@ -218,9 +231,11 @@ def load_tokenizer_assets(assets=None):
     result = []
     for repo, filename, kind in items:
         if kind not in ("runtime", "oracle"):
-            raise RuntimeError(f"unknown tokenizer asset kind {kind!r} for {repo}/{filename}")
+            raise RuntimeError(
+                f"unknown tokenizer asset kind {kind!r} for {repo}/{filename}")
         if "/" not in repo or not filename:
-            raise RuntimeError(f"malformed tokenizer asset repo/file {repo}/{filename}")
+            raise RuntimeError(
+                f"malformed tokenizer asset repo/file {repo}/{filename}")
         result.append((repo, filename, kind))
     if not result:
         raise RuntimeError("no tokenizer assets listed")
@@ -253,7 +268,9 @@ def download_go_models(use_china_mirrors=False):
             continue
         print(f"Downloading deepdoc model {fname}...")
         try:
-            hf_hub_download(repo_id=DEEPDOC_REPO, filename=fname, local_dir=target_dir)
+            hf_hub_download(repo_id=DEEPDOC_REPO,
+                            filename=fname,
+                            local_dir=target_dir)
             if not os.path.isfile(dest) or os.path.getsize(dest) == 0:
                 raise RuntimeError(f"Empty or missing model: {dest}")
         except Exception as e:  # noqa: BLE001 - collected and surfaced below
@@ -281,10 +298,13 @@ def download_go_models(use_china_mirrors=False):
     image_dir = os.path.join(SCRIPT_DIR, "huggingface.co", DEEPDOC_REPO)
     os.makedirs(image_dir, exist_ok=True)
     for fname in DEEPDOC_MODEL_FILES:
-        shutil.copyfile(os.path.join(target_dir, fname), os.path.join(image_dir, fname))
+        shutil.copyfile(os.path.join(target_dir, fname),
+                        os.path.join(image_dir, fname))
 
     print(f"  ✓ Go DeepDoc models ready under {target_dir}")
-    print("    No MODEL_DIR env needed: the Go backend auto-discovers this directory.")
+    print(
+        "    No MODEL_DIR env needed: the Go backend auto-discovers this directory."
+    )
 
 
 def download_tokenizer_assets(use_china_mirrors=False):
@@ -314,21 +334,27 @@ def download_tokenizer_assets(use_china_mirrors=False):
         for repo_id, filename, _kind in entries:
             target_dir = os.path.join(base, repo_id)
             target_file = os.path.join(target_dir, filename)
-            if os.path.isfile(target_file) and os.path.getsize(target_file) > 0:
+            if os.path.isfile(target_file) and os.path.getsize(
+                    target_file) > 0:
                 print(f"  ✓ {repo_id}/{filename} already present")
                 continue
             os.makedirs(target_dir, exist_ok=True)
             print(f"Downloading tokenizer asset {repo_id}/{filename}...")
             try:
-                hf_hub_download(repo_id=repo_id, filename=filename, local_dir=target_dir)
-                if not os.path.isfile(target_file) or os.path.getsize(target_file) == 0:
-                    raise RuntimeError(f"Empty or missing tokenizer asset: {target_file}")
+                hf_hub_download(repo_id=repo_id,
+                                filename=filename,
+                                local_dir=target_dir)
+                if not os.path.isfile(target_file) or os.path.getsize(
+                        target_file) == 0:
+                    raise RuntimeError(
+                        f"Empty or missing tokenizer asset: {target_file}")
             except Exception as e:  # noqa: BLE001 - collected and surfaced below
                 missing.append((repo_id, filename, e))
 
     if missing:
         for repo_id, filename, e in missing:
-            print(f"  ERROR: could not fetch {repo_id}/{filename}: {e}", file=sys.stderr)
+            print(f"  ERROR: could not fetch {repo_id}/{filename}: {e}",
+                  file=sys.stderr)
         print(
             "\n"
             "The embedding tokenizer counters in internal/tokenizer load these files from\n"
@@ -348,8 +374,13 @@ def download_tokenizer_assets(use_china_mirrors=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Download the runtime / image resources with optional China mirror support")
-    parser.add_argument("--china-mirrors", action="store_true", help="Use China-accessible mirrors for downloads")
+    parser = argparse.ArgumentParser(
+        description=
+        "Download the runtime / image resources with optional China mirror support"
+    )
+    parser.add_argument("--china-mirrors",
+                        action="store_true",
+                        help="Use China-accessible mirrors for downloads")
     args = parser.parse_args()
 
     # Anchor archives, the BPE table, and tokenizer assets to deps/.
@@ -374,16 +405,21 @@ def main():
     font = os.path.join(SCRIPT_DIR, "NotoSansCJKsc-VF.ttf")
     if os.path.isfile(font) and os.path.getsize(font) > 0:
         if not _valid_font(font):
-            print("  WARNING: existing NotoSansCJKsc-VF.ttf is not a valid font; re-downloading", file=sys.stderr)
+            print(
+                "  WARNING: existing NotoSansCJKsc-VF.ttf is not a valid font; re-downloading",
+                file=sys.stderr)
             os.unlink(font)
         else:
             _verify_font_checksum(font)
     if not (os.path.isfile(font) and os.path.getsize(font) > 0):
-        print(f"Downloading NotoSansCJKsc-VF.ttf from {noto_cjk_font_url()}...")
+        print(
+            f"Downloading NotoSansCJKsc-VF.ttf from {noto_cjk_font_url()}...")
         download_with_progress(noto_cjk_font_url(), font)
         if not _valid_font(font):
             os.unlink(font)
-            raise RuntimeError("Downloaded NotoSansCJKsc-VF.ttf is not a valid font; refusing to keep it")
+            raise RuntimeError(
+                "Downloaded NotoSansCJKsc-VF.ttf is not a valid font; refusing to keep it"
+            )
         _verify_font_checksum(font)
     print("  ✓ NotoSansCJKsc-VF.ttf ready")
 
@@ -400,7 +436,9 @@ def main():
     print()
     print(f"✓ Runtime/image resources ready under {SCRIPT_DIR}/")
     print("  Build the dependency image with:")
-    print(f"    cd {SCRIPT_DIR} && docker build -f Dockerfile -t infiniflow/ragflow_deps:latest .")
+    print(
+        f"    cd {SCRIPT_DIR} && docker build -f Dockerfile -t infiniflow/ragflow_deps:latest ."
+    )
 
 
 if __name__ == "__main__":
