@@ -1,4 +1,4 @@
-PREFIX?=docker.io
+PREFIX?=registry.home.renwei.net:5000/ragflow
 RAGFLOW_VERSION?=$(shell git describe --tags --match=v* --first-parent --always)
 TAG:=$(RAGFLOW_VERSION)
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
@@ -9,13 +9,13 @@ docker=podman
 dockerbuildflags= --format docker
 frontend:
 	@echo "$@: $(TAG)"
-	@${docker} build ${dockerbuildflags} -f Dockerfile.frontend -t $(PREFIX)/ragflow-fe:$(TAG) \
+	@${docker} build ${dockerbuildflags} -f Dockerfile.frontend -t $(PREFIX)/fe:$(TAG) \
 		--build-arg ADMIN_UPSTREAM=api.ragflow.svc \
 		--build-arg API_UPSTREAM=api.ragflow.svc \
 		--build-arg RAGFLOW_VERSION=${RAGFLOW_VERSION} \
 		.
-	@${docker} tag $(PREFIX)/ragflow-fe:$(TAG) ragflow-fe:latest
-	@echo "push image command: ${docker} push $(PREFIX)/ragflow-fe:$(TAG)"
+	@${docker} tag $(PREFIX)/fe:$(TAG) ragflow-fe:latest
+	@echo "push image command: ${docker} push $(PREFIX)/fe:$(TAG)"
 
 
 ragflow:
