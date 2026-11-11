@@ -167,6 +167,8 @@ ENV GOMODCACHE=/root/.cache/gomod GOCACHE=/root/.cache/gobuild
 # `go build` inside build.sh inherit this ENV.
 ARG GOPROXY
 ENV GOPROXY="${GOPROXY:-https://goproxy.cn,https://proxy.golang.org,direct}"
+ARG NEED_MIRROR=0
+ENV NEED_MIRROR="${NEED_MIRROR}"
 
 # Cache Go modules BEFORE copying source (mirrors the Dockerfile_ci fix):
 # copy only the manifests, download the full module graph into a persistent
