@@ -241,11 +241,19 @@ _native_libs_present() {
 _ensure_native_libs_installed() {
     _native_libs_present && return 0
     echo "One or more native static libraries are missing from the user cache;"
-    echo "  running downloader: uv run tools/scripts/download_dev_deps.py"
-    ( cd "$PROJECT_ROOT" && uv run tools/scripts/download_dev_deps.py ) || {
-        echo -e "${RED}Error: native library downloader failed.${NC}" >&2
-        exit 1
-    }
+    if [ "$NEED_MIRROR" == "1" ]; then
+        echo "  running downloader: uv run tools/scripts/download_dev_deps.py --china-mirrors"
+        ( cd "$PROJECT_ROOT" && uv run tools/scripts/download_dev_deps.py --china-mirrors ) || {
+            echo -e "${RED}Error: native library downloader failed.${NC}" >&2
+            exit 1
+        }
+    else
+        echo "  running downloader: uv run tools/scripts/download_dev_deps.py"
+        ( cd "$PROJECT_ROOT" && uv run tools/scripts/download_dev_deps.py ) || {
+            echo -e "${RED}Error: native library downloader failed.${NC}" >&2
+            exit 1
+        }
+    fi
     if _native_libs_present; then
         return 0
     fi
