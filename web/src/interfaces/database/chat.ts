@@ -144,6 +144,7 @@ export interface IConversation {
 
 export interface Message {
   content: string;
+  created_at: number;
   role: MessageType;
   doc_ids?: string[];
   prompt?: string;

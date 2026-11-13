@@ -25,6 +25,7 @@ import { useSetModalState } from '@/hooks/common-hooks';
 import { IRemoveMessageById } from '@/hooks/logic-hooks';
 import { cn } from '@/lib/utils';
 import { removeThinkSection } from '@/utils/chat';
+import { formatDate } from '@/utils/date';
 import {
   LucidePauseCircle,
   LucideRefreshCw,
@@ -42,6 +43,7 @@ import { useRemoveMessage, useSendFeedback, useSpeech } from './hooks';
 
 interface IProps {
   messageId: string;
+  messageCreatedAt: number;
   content: string;
   prompt?: string;
   showLikeButton: boolean;
@@ -51,6 +53,7 @@ interface IProps {
 
 export const AssistantGroupButton = ({
   messageId,
+  messageCreatedAt,
   content,
   prompt,
   audioBinary,
@@ -79,6 +82,9 @@ export const AssistantGroupButton = ({
         className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100"
         role="toolbar"
       >
+        <time dateTime={formatDate(messageCreatedAt*1000)}>
+          {formatDate(messageCreatedAt*1000)}
+        </time>
         <CopyToClipboard
           text={copyText}
           className="border-0"
@@ -160,6 +166,7 @@ export const AssistantGroupButton = ({
 
 interface UserGroupButtonProps extends Partial<IRemoveMessageById> {
   messageId: string;
+  messageCreatedAt: number;
   content: string;
   regenerateMessage?: () => void;
   sendLoading: boolean;
@@ -169,6 +176,7 @@ interface UserGroupButtonProps extends Partial<IRemoveMessageById> {
 export const UserGroupButton = ({
   content,
   messageId,
+  messageCreatedAt,
   sendLoading,
   deleteDisabled = false,
   removeMessageById,
@@ -182,6 +190,9 @@ export const UserGroupButton = ({
 
   return (
     <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <time dateTime={formatDate(messageCreatedAt*1000)}>
+        {formatDate(messageCreatedAt*1000)}
+      </time>
       <CopyToClipboard
         text={content}
         className="border-0"
