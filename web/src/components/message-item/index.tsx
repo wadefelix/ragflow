@@ -136,6 +136,7 @@ const MessageItem = ({
               index !== 0 && (
                 <AssistantGroupButton
                   messageId={item.id}
+                  messageCreatedAt={item.created_at}
                   content={messageContent}
                   prompt={item.prompt}
                   showLikeButton={showLikeButton}
@@ -147,6 +148,7 @@ const MessageItem = ({
               <UserGroupButton
                 content={messageContent}
                 messageId={item.id}
+                messageCreatedAt={item.created_at}
                 removeMessageById={removeMessageById}
                 regenerateMessage={regenerateMessage && handleRegenerateMessage}
                 sendLoading={sendLoading}
