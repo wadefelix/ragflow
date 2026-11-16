@@ -401,6 +401,7 @@ export function Sessions({
                       onClick={() => handleConversationClick(x.id, x.is_new)}
                       data-testid="chat-detail-session-item"
                       data-session-id={x.id}
+                      title={x.name}
                     >
                       {x.name}
                     </button>
